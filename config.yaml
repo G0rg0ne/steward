@@ -1,0 +1,19 @@
+# Flight Search Configuration
+flight:
+  routes:
+    - name: "Paris to Phuket"
+      from_city: "CDG"
+      to_city: "HKT"
+      departure_date: "2025-08-31"
+      return_date: "2025-09-16"
+  
+  # Search preferences
+  search:
+    max_results: 5
+    adults: 1
+    
+  # Notification settings
+  notification:
+    schedule:
+      time: "09:00"  # Daily check time
+      timezone: "UTC" 

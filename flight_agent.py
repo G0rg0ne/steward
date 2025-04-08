@@ -1,6 +1,7 @@
 import os
 import schedule
 import time
+import yaml
 from datetime import datetime
 from dotenv import load_dotenv
 from amadeus import Client, ResponseError
@@ -17,8 +18,22 @@ logger.add(
     format="{time:YYYY-MM-DD HH:mm:ss} | {level} | {message}"
 )
 
-# Load environment variables
+def load_config():
+    """
+    Load configuration from config.yaml
+    """
+    try:
+        with open('config.yaml', 'r') as file:
+            config = yaml.safe_load(file)
+        logger.info("Configuration loaded successfully")
+        return config
+    except Exception as e:
+        logger.error(f"Error loading configuration: {str(e)}")
+        raise
+
+# Load environment variables and configuration
 load_dotenv()
+config = load_config()
 
 # Debug environment variables
 logger.info("Checking environment variables...")
@@ -42,39 +57,42 @@ except Exception as e:
     logger.error(f"Failed to initialize Amadeus client: {str(e)}")
     raise
 
-def get_cheapest_flights(from_city, to_city, flight_date):
+def get_cheapest_flights(from_city, to_city, departure_date, return_date=None):
     """
-    Get the top 3 cheapest flights using the Amadeus API
+    Get the top 3 cheapest flights using the Amadeus API, including return flights if specified
     """
     try:
-        logger.info(f"Searching for flights from {from_city} to {to_city} on {flight_date}")
-        # Search for flight offers
-        response = amadeus.shopping.flight_offers_search.get(
+        logger.info(f"Searching for flights from {from_city} to {to_city}")
+        logger.info(f"Departure date: {departure_date}, Return date: {return_date}")
+        
+        max_results = config['flight']['search']['max_results']
+        adults = config['flight']['search']['adults']
+        
+        # Search for outbound flight offers
+        outbound_response = amadeus.shopping.flight_offers_search.get(
             originLocationCode=from_city,
             destinationLocationCode=to_city,
-            departureDate=flight_date,
-            adults=1,
-            max=5  # Get top 5 offers to ensure we have enough valid ones
+            departureDate=departure_date,
+            adults=adults,
+            max=max_results
         )
-        flights = []
-        for offer in response.data:
-            # Get the first itinerary (usually the cheapest)
+        
+        outbound_flights = []
+        return_flights = []
+        
+        # Process outbound flights
+        for offer in outbound_response.data:
             itinerary = offer['itineraries'][0]
             segments = itinerary['segments']
             
-            # Get pricing information
             price = offer['price']['total']
             currency = offer['price']['currency']
-            
-            # Get airline information
             airline = segments[0]['carrierCode']
-            
-            # Get departure and arrival times
             departure = segments[0]['departure']['at']
             arrival = segments[-1]['arrival']['at']
             
-            flights.append({
-                'date': flight_date,
+            outbound_flights.append({
+                'date': departure_date,
                 'departure_time': departure,
                 'arrival_time': arrival,
                 'price': f"{price} {currency}",
@@ -82,51 +100,101 @@ def get_cheapest_flights(from_city, to_city, flight_date):
                 'stops': len(segments) - 1
             })
         
-        # Sort by price and return top 3
-        sorted_flights = sorted(flights, key=lambda x: float(x['price'].split()[0]))
-        logger.info(f"Found {len(sorted_flights[:3])} flights")
-        return sorted_flights[:3]
+        # If return date is specified, search for return flights
+        if return_date:
+            return_response = amadeus.shopping.flight_offers_search.get(
+                originLocationCode=to_city,
+                destinationLocationCode=from_city,
+                departureDate=return_date,
+                adults=1,
+                max=5
+            )
+            
+            for offer in return_response.data:
+                itinerary = offer['itineraries'][0]
+                segments = itinerary['segments']
+                
+                price = offer['price']['total']
+                currency = offer['price']['currency']
+                airline = segments[0]['carrierCode']
+                departure = segments[0]['departure']['at']
+                arrival = segments[-1]['arrival']['at']
+                
+                return_flights.append({
+                    'date': return_date,
+                    'departure_time': departure,
+                    'arrival_time': arrival,
+                    'price': f"{price} {currency}",
+                    'airline': airline,
+                    'stops': len(segments) - 1
+                })
+        
+        # Sort flights by price
+        sorted_outbound = sorted(outbound_flights, key=lambda x: float(x['price'].split()[0]))[:3]
+        sorted_return = sorted(return_flights, key=lambda x: float(x['price'].split()[0]))[:3] if return_flights else []
+        
+        logger.info(f"Found {len(sorted_outbound)} outbound flights and {len(sorted_return)} return flights")
+        return {
+            'outbound': sorted_outbound,
+            'return': sorted_return
+        }
         
     except ResponseError as error:
         logger.error(f"Amadeus API Error: {error}")
         logger.error(f"Error Code: {error.code}")
         logger.error(f"Error Description: {error.description}")
         logger.error(f"Error Response: {error.response}")
-        return []
+        return {'outbound': [], 'return': []}
     except Exception as e:
         logger.error(f"Unexpected error while fetching flights: {str(e)}")
         logger.error(f"Error type: {type(e).__name__}")
-        return []
+        return {'outbound': [], 'return': []}
 
 def analyze_flights_with_ai(flights, from_city, to_city):
     """
     Use Mistral AI to analyze and format the flight information
     """
-    if not flights:
+    if not flights['outbound']:
         logger.warning("No flights found for analysis")
         return "No flights found for the specified route."
     
-    flight_info = "\n".join([
+    outbound_info = "\nOutbound Flights:\n" + "\n".join([
         f"Date: {flight['date']}, "
         f"Departure: {flight['departure_time']}, "
         f"Arrival: {flight['arrival_time']}, "
         f"Price: {flight['price']}, "
         f"Airline: {flight['airline']}, "
         f"Stops: {flight['stops']}"
-        for flight in flights
+        for flight in flights['outbound']
     ])
+    
+    return_info = ""
+    if flights['return']:
+        return_info = "\n\nReturn Flights:\n" + "\n".join([
+            f"Date: {flight['date']}, "
+            f"Departure: {flight['departure_time']}, "
+            f"Arrival: {flight['arrival_time']}, "
+            f"Price: {flight['price']}, "
+            f"Airline: {flight['airline']}, "
+            f"Stops: {flight['stops']}"
+            for flight in flights['return']
+        ])
+    
+    flight_info = outbound_info + return_info
     
     logger.info("Analyzing flights with Mistral AI")
     messages = [
         ChatMessage(role="user", content=f"""
-        Please analyze these flight options from {from_city} to {to_city} and provide a concise summary:
+        Please analyze these flight options between {from_city} and {to_city} and provide a concise summary:
         {flight_info}
         
         Focus on:
-        1. The best deals available
-        2. Any notable patterns in pricing
-        3. The number of stops for each flight
-        4. The time differences between flights
+        1. The best round-trip combinations (if return flights are available)
+        2. The best deals available for each direction
+        3. Any notable patterns in pricing
+        4. The number of stops for each flight
+        5. The time differences between flights
+        6. Total cost for the best round-trip combination
         """)
     ]
     
@@ -170,36 +238,46 @@ def daily_flight_check():
     """
     Main function to check flights and send notifications
     """
-    from_city = os.getenv("FROM_CITY", "NYC")  # Default to NYC
-    to_city = os.getenv("TO_CITY", "LAX")      # Default to LAX
-    flight_date = os.getenv("FLIGHT_DATE")     # Get the specified flight date
+    flight_routes = config['flight']['routes']
     
-    if not flight_date:
-        logger.error("FLIGHT_DATE environment variable is not set")
-        return
-    
-    logger.info(f"Starting daily flight check from {from_city} to {to_city} on {flight_date}")
-    flights = get_cheapest_flights(from_city, to_city, flight_date)
-    
-    if flights:
-        analysis = analyze_flights_with_ai(flights, from_city, to_city)
-        subject = f"Flight Deals: {from_city} to {to_city} on {flight_date}"
-        send_email_notification(subject, analysis)
-    else:
-        logger.warning(f"No flights found for {from_city} to {to_city} on {flight_date}")
+    for route in flight_routes:
+        from_city = route['from_city']
+        to_city = route['to_city']
+        departure_date = route['departure_date']
+        return_date = route.get('return_date')
+        
+        logger.info(f"Processing route: {route['name']}")
+        logger.info(f"Departure date: {departure_date}, Return date: {return_date}")
+        
+        flights = get_cheapest_flights(from_city, to_city, departure_date, return_date)
+        
+        if flights['outbound']:
+            analysis = analyze_flights_with_ai(flights, from_city, to_city)
+            subject = f"Flight Deals: {route['name']} ({departure_date}"
+            if return_date:
+                subject += f" - {return_date})"
+            else:
+                subject += ")"
+            send_email_notification(subject, analysis)
+        else:
+            logger.warning(f"No flights found for {route['name']}")
 
 def main():
     logger.info("Starting flight agent application")
-    # Schedule the daily check (runs at 9 AM every day)
-    schedule.every().day.at("09:00").do(daily_flight_check)
+    
+    # Get schedule configuration
+    schedule_time = config['flight']['notification']['schedule']['time']
+    
+    # Schedule the daily check
+    schedule.every().day.at(schedule_time).do(daily_flight_check)
     
     # Run the check immediately on startup
     daily_flight_check()
+    
     # Keep the script running
     while True:
         schedule.run_pending()
         time.sleep(120)
-    
 
 if __name__ == "__main__":
     main() 

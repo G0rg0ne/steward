@@ -85,4 +85,5 @@ jobs:
               --name flight-agent \
               --restart unless-stopped \
               -v /etc/flight-agent/.env:/app/.env \
+              -v /etc/flight-agent/config.yaml:/app/config.yaml \
               ${{ env.REGISTRY }}/${{ needs.build-and-push.outputs.image_name }}:latest 
