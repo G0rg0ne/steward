@@ -40,6 +40,9 @@ jobs:
         uses: docker/metadata-action@v5
         with:
           images: ${{ env.REGISTRY }}/${{ steps.set_image.outputs.image_name }}
+          tags: |
+            type=raw,value=latest,enable=true
+            type=ref,event=branch
 
       - name: Build and push Docker image
         uses: docker/build-push-action@v5
@@ -52,6 +55,7 @@ jobs:
       - name: Verify image push
         run: |
           echo "Verifying pushed image..."
+          echo "Available tags from metadata: ${{ steps.meta.outputs.tags }}"
           docker pull ${{ env.REGISTRY }}/${{ steps.set_image.outputs.image_name }}:latest
           docker images
 
