@@ -6,24 +6,48 @@ from dotenv import load_dotenv
 from amadeus import Client, ResponseError
 from mistralai.client import MistralClient
 from mistralai.models.chat_completion import ChatMessage
+from loguru import logger
+
+# Configure loguru
+logger.add(
+    "logs/flight_agent_{time}.log",
+    rotation="1 day",
+    retention="7 days",
+    level="INFO",
+    format="{time:YYYY-MM-DD HH:mm:ss} | {level} | {message}"
+)
 
 # Load environment variables
 load_dotenv()
+
+# Debug environment variables
+logger.info("Checking environment variables...")
+logger.info(f"FROM_CITY: {os.getenv('FROM_CITY')}")
+logger.info(f"TO_CITY: {os.getenv('TO_CITY')}")
+logger.info(f"FLIGHT_DATE: {os.getenv('FLIGHT_DATE')}")
+logger.info(f"AMADEUS_CLIENT_ID exists: {bool(os.getenv('AMADEUS_CLIENT_ID'))}")
+logger.info(f"AMADEUS_CLIENT_SECRET exists: {bool(os.getenv('AMADEUS_CLIENT_SECRET'))}")
 
 # Initialize Mistral AI client
 mistral_client = MistralClient(api_key=os.getenv("MISTRAL_API_KEY"))
 
 # Initialize Amadeus client
-amadeus = Client(
-    client_id=os.getenv("AMADEUS_CLIENT_ID"),
-    client_secret=os.getenv("AMADEUS_CLIENT_SECRET")
-)
+try:
+    amadeus = Client(
+        client_id=os.getenv("AMADEUS_CLIENT_ID"),
+        client_secret=os.getenv("AMADEUS_CLIENT_SECRET")
+    )
+    logger.info("Amadeus client initialized successfully")
+except Exception as e:
+    logger.error(f"Failed to initialize Amadeus client: {str(e)}")
+    raise
 
 def get_cheapest_flights(from_city, to_city, flight_date):
     """
     Get the top 3 cheapest flights using the Amadeus API
     """
     try:
+        logger.info(f"Searching for flights from {from_city} to {to_city} on {flight_date}")
         # Search for flight offers
         response = amadeus.shopping.flight_offers_search.get(
             originLocationCode=from_city,
@@ -60,10 +84,18 @@ def get_cheapest_flights(from_city, to_city, flight_date):
         
         # Sort by price and return top 3
         sorted_flights = sorted(flights, key=lambda x: float(x['price'].split()[0]))
+        logger.info(f"Found {len(sorted_flights[:3])} flights")
         return sorted_flights[:3]
         
     except ResponseError as error:
-        print(f"Error fetching flights: {error}")
+        logger.error(f"Amadeus API Error: {error}")
+        logger.error(f"Error Code: {error.code}")
+        logger.error(f"Error Description: {error.description}")
+        logger.error(f"Error Response: {error.response}")
+        return []
+    except Exception as e:
+        logger.error(f"Unexpected error while fetching flights: {str(e)}")
+        logger.error(f"Error type: {type(e).__name__}")
         return []
 
 def analyze_flights_with_ai(flights, from_city, to_city):
@@ -71,6 +103,7 @@ def analyze_flights_with_ai(flights, from_city, to_city):
     Use Mistral AI to analyze and format the flight information
     """
     if not flights:
+        logger.warning("No flights found for analysis")
         return "No flights found for the specified route."
     
     flight_info = "\n".join([
@@ -83,6 +116,7 @@ def analyze_flights_with_ai(flights, from_city, to_city):
         for flight in flights
     ])
     
+    logger.info("Analyzing flights with Mistral AI")
     messages = [
         ChatMessage(role="user", content=f"""
         Please analyze these flight options from {from_city} to {to_city} and provide a concise summary:
@@ -128,9 +162,9 @@ def send_email_notification(subject, body):
         server.login(sender_email, sender_password)
         server.send_message(msg)
         server.quit()
-        print("Email notification sent successfully!")
+        logger.info("Email notification sent successfully")
     except Exception as e:
-        print(f"Error sending email: {e}")
+        logger.error(f"Error sending email: {e}")
 
 def daily_flight_check():
     """
@@ -141,10 +175,10 @@ def daily_flight_check():
     flight_date = os.getenv("FLIGHT_DATE")     # Get the specified flight date
     
     if not flight_date:
-        print("Error: FLIGHT_DATE environment variable is not set")
+        logger.error("FLIGHT_DATE environment variable is not set")
         return
     
-    print(f"Checking flights from {from_city} to {to_city} on {flight_date}...")
+    logger.info(f"Starting daily flight check from {from_city} to {to_city} on {flight_date}")
     flights = get_cheapest_flights(from_city, to_city, flight_date)
     
     if flights:
@@ -152,19 +186,20 @@ def daily_flight_check():
         subject = f"Flight Deals: {from_city} to {to_city} on {flight_date}"
         send_email_notification(subject, analysis)
     else:
-        print(f"No flights found for {from_city} to {to_city} on {flight_date}")
+        logger.warning(f"No flights found for {from_city} to {to_city} on {flight_date}")
 
 def main():
+    logger.info("Starting flight agent application")
     # Schedule the daily check (runs at 9 AM every day)
     schedule.every().day.at("09:00").do(daily_flight_check)
     
     # Run the check immediately on startup
     daily_flight_check()
-    
     # Keep the script running
     while True:
         schedule.run_pending()
-        time.sleep(60)
+        time.sleep(120)
+    
 
 if __name__ == "__main__":
     main() 
