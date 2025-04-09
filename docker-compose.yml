@@ -1,0 +1,36 @@
+version: '3.8'
+
+services:
+  flight-agent:
+    build: .
+    container_name: flight-agent
+    restart: unless-stopped
+    volumes:
+      - ./config.yaml:/app/config.yaml
+      - ./logs:/app/logs
+      - ./data:/app/data
+    env_file:
+      - .env
+    ports:
+      - "8501:8501"  # Streamlit port
+    networks:
+      - app-network
+
+  webhook:
+    image: almir/webhook
+    container_name: webhook
+    restart: unless-stopped
+    volumes:
+      - ./webhook:/etc/webhook
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ./docker-compose.yml:/etc/webhook/docker-compose.yml
+    ports:
+      - "9000:9000"
+    environment:
+      - HOOK_SECRET=${WEBHOOK_SECRET}
+    networks:
+      - app-network
+
+networks:
+  app-network:
+    driver: bridge 

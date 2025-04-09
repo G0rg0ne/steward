@@ -2,6 +2,7 @@ import os
 import schedule
 import time
 import yaml
+import json
 from datetime import datetime
 from dotenv import load_dotenv
 from amadeus import Client, ResponseError
@@ -234,6 +235,34 @@ def send_email_notification(subject, body):
     except Exception as e:
         logger.error(f"Error sending email: {e}")
 
+def save_flight_data(route_name, flights, analysis):
+    """Save flight data to a JSON file for the Streamlit app"""
+    data = {
+        'timestamp': datetime.now().isoformat(),
+        'route': route_name,
+        'outbound': flights['outbound'],
+        'return': flights['return'],
+        'analysis': analysis
+    }
+    
+    # Load existing data
+    try:
+        with open('logs/flight_data.json', 'r') as f:
+            existing_data = json.load(f)
+    except (FileNotFoundError, json.JSONDecodeError):
+        existing_data = []
+    
+    # Append new data
+    existing_data.append(data)
+    
+    # Keep only the last 30 days of data
+    if len(existing_data) > 30:
+        existing_data = existing_data[-30:]
+    
+    # Save updated data
+    with open('logs/flight_data.json', 'w') as f:
+        json.dump(existing_data, f, indent=2)
+
 def daily_flight_check():
     """
     Main function to check flights and send notifications
@@ -259,6 +288,9 @@ def daily_flight_check():
             else:
                 subject += ")"
             send_email_notification(subject, analysis)
+            
+            # Save data for Streamlit
+            save_flight_data(route['name'], flights, analysis)
         else:
             logger.warning(f"No flights found for {route['name']}")
 

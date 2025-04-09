@@ -1,4 +1,4 @@
-name: Deploy to Hetzner
+name: Deploy to Server
 
 on:
   push:
@@ -52,38 +52,21 @@ jobs:
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
 
-      - name: Verify image push
-        run: |
-          echo "Verifying pushed image..."
-          echo "Available tags from metadata: ${{ steps.meta.outputs.tags }}"
-          docker pull ${{ env.REGISTRY }}/${{ steps.set_image.outputs.image_name }}:latest
-          docker images
-
   deploy:
     needs: build-and-push
     runs-on: ubuntu-latest
     steps:
-      - name: Deploy to Hetzner
-        uses: appleboy/ssh-action@v1.0.3
-        with:
-          host: ${{ secrets.HETZNER_HOST }}
-          username: ${{ secrets.HETZNER_USERNAME }}
-          key: ${{ secrets.HETZNER_SSH_KEY }}
-          script: |
-            # Login to GitHub Container Registry
-            echo "${{ secrets.GITHUB_TOKEN }}" | docker login ${{ env.REGISTRY }} -u ${{ github.actor }} --password-stdin
-            
-            # Pull the latest image
-            docker pull ${{ env.REGISTRY }}/${{ needs.build-and-push.outputs.image_name }}:latest
-            
-            # Stop and remove the old container if it exists
-            docker stop flight-agent || true
-            docker rm flight-agent || true
-            
-            # Run the new container
-            docker run -d \
-              --name flight-agent \
-              --restart unless-stopped \
-              -v /etc/flight-agent/.env:/app/.env \
-              -v /etc/flight-agent/config.yaml:/app/config.yaml \
-              ${{ env.REGISTRY }}/${{ needs.build-and-push.outputs.image_name }}:latest 
+      - name: Trigger webhook
+        run: |
+          # Create payload
+          PAYLOAD='{"ref": "${{ github.ref }}", "repository": {"name": "${{ github.repository }}", "full_name": "${{ github.repository }}", "owner": {"name": "${{ github.actor }}"}}}'
+          
+          # Calculate signature
+          SIGNATURE=$(echo -n "$PAYLOAD" | openssl dgst -sha1 -hmac "${{ secrets.WEBHOOK_SECRET }}" | cut -d' ' -f2)
+          
+          # Send webhook request
+          curl -X POST \
+            -H "X-Hub-Signature: sha1=$SIGNATURE" \
+            -H "Content-Type: application/json" \
+            -d "$PAYLOAD" \
+            ${{ secrets.WEBHOOK_URL }}/hooks/redeploy 
