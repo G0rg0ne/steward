@@ -27,7 +27,7 @@ services:
     ports:
       - "9000:9000"
     environment:
-      - HOOK_SECRET=${WEBHOOK_SECRET}
+      - WEBHOOK_SECRET=${WEBHOOK_SECRET}
     networks:
       - app-network
 
