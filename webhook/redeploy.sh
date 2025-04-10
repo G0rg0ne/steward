@@ -1,8 +1,5 @@
 #!/bin/bash
 
-# Change to the directory containing docker-compose.yml
-cd /webhook
-
 # Pull the latest code changes
 git pull origin main
 
@@ -22,4 +19,4 @@ docker-compose build --no-cache
 docker-compose up -d
 
 # Log the deployment
-echo "$(date) - Deployment completed with full rebuild and code update" >> /webhook/deployment.log 
+echo "$(date) - Deployment completed with full rebuild and code update" >> /steward/webhook/deployment.log 
