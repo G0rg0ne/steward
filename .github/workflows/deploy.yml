@@ -61,12 +61,13 @@ jobs:
           # Create payload
           PAYLOAD='{"ref": "${{ github.ref }}", "repository": {"name": "${{ github.repository }}", "full_name": "${{ github.repository }}", "owner": {"name": "${{ github.actor }}"}}}'
           
-          # Calculate signature
+          # Calculate signature with proper format
           SIGNATURE=$(echo -n "$PAYLOAD" | openssl dgst -sha1 -hmac "${{ secrets.WEBHOOK_SECRET }}" | cut -d' ' -f2)
           
-          # Send webhook request
+          # Send webhook request with proper headers
           curl -X POST \
             -H "X-Hub-Signature: sha1=$SIGNATURE" \
             -H "Content-Type: application/json" \
+            -H "User-Agent: GitHub-Hookshot/1.0" \
             -d "$PAYLOAD" \
             ${{ secrets.WEBHOOK_URL }}/hooks/redeploy 
