@@ -14,6 +14,8 @@ except ImportError:
 from mistralai.client import MistralClient
 from mistralai.models.chat_completion import ChatMessage
 from loguru import logger
+import discord
+from discord.ext import commands
 
 # Configure loguru
 logger.add(
@@ -240,6 +242,30 @@ def send_email_notification(subject, body):
     except Exception as e:
         logger.error(f"Error sending email: {e}")
 
+def send_discord_notification(content):
+    """
+    Send notification to Discord channel using a bot
+    """
+    try:
+        # Initialize Discord bot
+        intents = discord.Intents.default()
+        intents.message_content = True
+        bot = commands.Bot(command_prefix='!', intents=intents)
+        
+        @bot.event
+        async def on_ready():
+            channel_id = int(os.getenv("DISCORD_CHANNEL_ID"))
+            channel = bot.get_channel(channel_id)
+            if channel:
+                await channel.send(content)
+                logger.info("Discord notification sent successfully")
+            await bot.close()
+        
+        # Run the bot with the token
+        bot.run(os.getenv("DISCORD_BOT_TOKEN"))
+    except Exception as e:
+        logger.error(f"Error sending Discord notification: {e}")
+
 def save_flight_data(route_name, flights, analysis):
     """Save flight data to a JSON file for the Streamlit app"""
     data = {
@@ -292,7 +318,10 @@ def daily_flight_check():
                 subject += f" - {return_date})"
             else:
                 subject += ")"
+            
+            # Send both email and Discord notifications
             send_email_notification(subject, analysis)
+            send_discord_notification(f"**{subject}**\n\n{analysis}")
             
             # Save data for Streamlit
             save_flight_data(route['name'], flights, analysis)

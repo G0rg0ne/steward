@@ -5,4 +5,5 @@ loguru==0.7.2
 mistralai==0.0.12
 streamlit==1.28.0
 pandas==2.1.0
-PyYAML==6.0.1 
+PyYAML==6.0.1
+discord.py==2.3.2 
