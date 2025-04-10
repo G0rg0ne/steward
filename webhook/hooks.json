@@ -1,8 +1,8 @@
 [
   {
     "id": "redeploy",
-    "execute-command": "/etc/webhook/redeploy.sh",
-    "command-working-directory": "/etc/webhook",
+    "execute-command": "/webhook/redeploy.sh",
+    "command-working-directory": "/webhook",
     "response-message": "Redeploying flight agent...",
     "trigger-rule": {
       "match": {
