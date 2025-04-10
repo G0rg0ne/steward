@@ -21,9 +21,9 @@ services:
     container_name: webhook
     restart: unless-stopped
     volumes:
-      - ./webhook:/etc/webhook
+      - /home/deployer/steward/webhook:/etc/webhook
       - /var/run/docker.sock:/var/run/docker.sock
-      - ./docker-compose.yml:/etc/webhook/docker-compose.yml
+      - /home/deployer/steward/docker-compose.yml:/etc/webhook/docker-compose.yml
     ports:
       - "9000:9000"
     environment:
