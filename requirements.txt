@@ -1,4 +1,4 @@
-amadeus==8.1.0
+amadeus==5.0.0
 python-dotenv==1.0.0
 schedule==1.2.1
 loguru==0.7.2

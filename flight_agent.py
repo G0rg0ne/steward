@@ -5,7 +5,12 @@ import yaml
 import json
 from datetime import datetime
 from dotenv import load_dotenv
-from amadeus import Client, ResponseError
+try:
+    from amadeus import Client, ResponseError
+except ImportError:
+    # Fallback to direct import
+    from amadeus.client import Client
+    from amadeus.exceptions import ResponseError
 from mistralai.client import MistralClient
 from mistralai.models.chat_completion import ChatMessage
 from loguru import logger
