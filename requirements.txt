@@ -1,8 +1,8 @@
-amadeus==6.0.0
+amadeus==8.1.0
 python-dotenv==1.0.0
-schedule==1.2.0
-loguru==0.7.0
-mistralai==0.0.7
+schedule==1.2.1
+loguru==0.7.2
+mistralai==0.0.12
 streamlit==1.28.0
 pandas==2.1.0
-pyyaml==6.0.1 
+PyYAML==6.0.1 
