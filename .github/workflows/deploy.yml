@@ -67,7 +67,7 @@ jobs:
           echo "Payload: $PAYLOAD"
           
           # Calculate signature with proper format for HMAC-SHA1
-          # Using printf to ensure no newlines or extra characters
+          # Using printf and ensuring no extra whitespace
           SIGNATURE=$(printf '%s' "$PAYLOAD" | openssl dgst -sha1 -hmac "$WEBHOOK_SECRET" | cut -d' ' -f2)
           
           # Debug: Print the signature and secret info
