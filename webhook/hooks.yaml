@@ -8,4 +8,5 @@
       secret: "{{.Env.WEBHOOK_SECRET}}"
       parameter:
         source: header
-        name: X-Hub-Signature 
+        name: X-Hub-Signature
+        value_prefix: "sha1=" 
