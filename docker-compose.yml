@@ -22,7 +22,8 @@ services:
     restart: unless-stopped
     command: ["-hooks", "/etc/webhook/hooks.yaml", "-verbose"]
     volumes:
-      - ./webhook:/etc/webhook:ro
+      - ./webhook:/etc/webhook
+      - ./webhook/deployment.log:/etc/webhook/deployment.log
       - /var/run/docker.sock:/var/run/docker.sock
       - ./docker-compose.yml:/etc/webhook/docker-compose.yml
     ports:

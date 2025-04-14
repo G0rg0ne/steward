@@ -3,6 +3,10 @@
 # Exit on error
 set -e
 
+# Ensure log file exists and is writable
+touch /etc/webhook/deployment.log
+chmod 666 /etc/webhook/deployment.log
+
 # Log function
 log() {
     echo "$(date) - $1" >> /etc/webhook/deployment.log
