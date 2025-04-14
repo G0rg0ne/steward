@@ -30,7 +30,6 @@ services:
       - "9000:9000"
     networks:
       - app-network
-    entrypoint: ["/bin/ash", "-c", "ls -la /etc/webhook && chmod +x /etc/webhook/redeploy.sh && /go/bin/webhook -hooks /etc/webhook/hooks.yaml -verbose"]
 
 networks:
   app-network:
