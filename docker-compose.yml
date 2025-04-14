@@ -29,7 +29,8 @@ services:
       - "9000:9000"
     environment:
       - WEBHOOK_SECRET=${WEBHOOK_SECRET}
-      - HOOKS_FILE=/etc/webhook/hooks.yaml
+    env_file:
+      - .env
     networks:
       - app-network
 
