@@ -9,4 +9,12 @@
       parameter:
         source: header
         name: X-Hub-Signature
-        value_prefix: "sha1=" 
+        value_prefix: "sha1="
+      debug: true
+    and:
+      - match:
+          type: value
+          value: "{{.Payload.repository.name}}"
+          parameter:
+            source: payload
+            name: repository.name 

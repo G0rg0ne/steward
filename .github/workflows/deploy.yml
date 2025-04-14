@@ -67,11 +67,13 @@ jobs:
           echo "Payload: $PAYLOAD"
           
           # Calculate signature with proper format for HMAC-SHA1
-          SIGNATURE=$(echo -n "$PAYLOAD" | openssl dgst -sha1 -hmac "$WEBHOOK_SECRET" | cut -d' ' -f2)
+          # Using printf to ensure no newlines or extra characters
+          SIGNATURE=$(printf '%s' "$PAYLOAD" | openssl dgst -sha1 -hmac "$WEBHOOK_SECRET" | cut -d' ' -f2)
           
           # Debug: Print the signature and secret info
           echo "Signature: $SIGNATURE"
           echo "Secret length: ${#WEBHOOK_SECRET}"
+          echo "Using secret: $WEBHOOK_SECRET"
           
           # Send webhook request with proper headers
           curl -v -X POST \
