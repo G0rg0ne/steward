@@ -20,6 +20,7 @@ services:
     image: almir/webhook
     container_name: webhook
     restart: unless-stopped
+    command: ["-hooks", "/etc/webhook/hooks.yaml", "-verbose"]
     volumes:
       - /home/deployer/steward/webhook:/etc/webhook
       - /var/run/docker.sock:/var/run/docker.sock
@@ -28,6 +29,7 @@ services:
       - "9000:9000"
     environment:
       - WEBHOOK_SECRET=${WEBHOOK_SECRET}
+      - HOOKS_FILE=/etc/webhook/hooks.yaml
     networks:
       - app-network
 
