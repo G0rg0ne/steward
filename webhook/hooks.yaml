@@ -10,4 +10,9 @@
         source: header
         name: X-Hub-Signature
         value_prefix: "sha1="
-      debug: true 
+      debug: true
+    pass-arguments-to-command:
+      - source: payload
+        name: ref
+      - source: payload
+        name: repository.name 
