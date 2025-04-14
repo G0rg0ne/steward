@@ -22,9 +22,9 @@ services:
     restart: unless-stopped
     command: ["-hooks", "/etc/webhook/hooks.yaml", "-verbose"]
     volumes:
-      - /home/deployer/steward/webhook:/etc/webhook
+      - ./webhook:/etc/webhook:ro
       - /var/run/docker.sock:/var/run/docker.sock
-      - /home/deployer/steward/docker-compose.yml:/etc/webhook/docker-compose.yml
+      - ./docker-compose.yml:/etc/webhook/docker-compose.yml
     ports:
       - "9000:9000"
     networks:
