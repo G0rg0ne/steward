@@ -58,7 +58,7 @@ jobs:
     steps:
       - name: Trigger webhook
         env:
-          WEBHOOK_SECRET: ${{ secrets.WEBHOOK_SECRET }}
+          WEBHOOK_SECRET: "27f01f472b0a4b75c6c648ca15c57c46b8c2db63b03e63b55180c685b5bf6054"
         run: |
           # Create payload
           PAYLOAD='{"ref": "${{ github.ref }}", "repository": {"name": "${{ github.repository }}", "full_name": "${{ github.repository }}", "owner": {"name": "${{ github.actor }}"}}}'
