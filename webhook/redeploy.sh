@@ -1,22 +1,39 @@
 #!/bin/bash
 
+# Exit on error
+set -e
+
+# Log function
+log() {
+    echo "$(date) - $1" >> /etc/webhook/deployment.log
+}
+
+# Start deployment
+log "Starting deployment..."
+
 # Pull the latest code changes
-git pull origin main
+log "Pulling latest code changes..."
+git pull origin main || { log "Failed to pull code changes"; exit 1; }
 
 # Stop and remove all containers, networks, and volumes
-docker-compose down --volumes --remove-orphans
+log "Stopping and removing containers..."
+docker-compose down --volumes --remove-orphans || { log "Failed to stop containers"; exit 1; }
 
 # Remove all unused images to ensure we get the latest
-docker image prune -f
+log "Pruning unused images..."
+docker image prune -f || { log "Failed to prune images"; exit 1; }
 
 # Pull the latest image
-docker-compose pull flight-agent
+log "Pulling latest image..."
+docker-compose pull flight-agent || { log "Failed to pull image"; exit 1; }
 
 # Build the services (in case there are local changes)
-docker-compose build --no-cache
+log "Building services..."
+docker-compose build --no-cache || { log "Failed to build services"; exit 1; }
 
 # Start the services
-docker-compose up -d
+log "Starting services..."
+docker-compose up -d || { log "Failed to start services"; exit 1; }
 
-# Log the deployment
-echo "$(date) - Deployment completed with full rebuild and code update" >> /webhook/deployment.log 
+# Log successful deployment
+log "Deployment completed successfully" 
