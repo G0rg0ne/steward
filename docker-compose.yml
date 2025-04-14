@@ -27,7 +27,6 @@ services:
       - /home/deployer/steward/docker-compose.yml:/etc/webhook/docker-compose.yml
     ports:
       - "9000:9000"
-    user: root
     networks:
       - app-network
 
