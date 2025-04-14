@@ -4,7 +4,7 @@
   response-message: "Redeploying flight agent..."
   trigger-rule:
     match:
-      type: payload-hash-sha1
+      type: payload-hmac-sha1
       secret: "{{.Env.WEBHOOK_SECRET}}"
       parameter:
         source: header
