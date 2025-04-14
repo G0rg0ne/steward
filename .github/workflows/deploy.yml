@@ -57,6 +57,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Trigger webhook
+        env:
+          WEBHOOK_SECRET: ${{ secrets.WEBHOOK_SECRET }}
         run: |
           # Create payload
           PAYLOAD='{"ref": "${{ github.ref }}", "repository": {"name": "${{ github.repository }}", "full_name": "${{ github.repository }}", "owner": {"name": "${{ github.actor }}"}}}'
@@ -65,9 +67,9 @@ jobs:
           echo "Payload: $PAYLOAD"
           
           # Calculate signature with proper format for HMAC-SHA1
-          SIGNATURE=$(echo -n "$PAYLOAD" | openssl dgst -sha1 -hmac "${{ secrets.WEBHOOK_SECRET }}" | cut -d' ' -f2)
+          SIGNATURE=$(echo -n "$PAYLOAD" | openssl dgst -sha1 -hmac "$WEBHOOK_SECRET" | cut -d' ' -f2)
           
-          # Debug: Print the signature
+          # Debug: Print the signature and secret info
           echo "Signature: $SIGNATURE"
           echo "Secret length: ${#WEBHOOK_SECRET}"
           
