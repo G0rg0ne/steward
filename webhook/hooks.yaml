@@ -5,7 +5,7 @@
   trigger-rule:
     match:
       type: payload-hmac-sha1
-      secret: "{{.Env.WEBHOOK_SECRET}}"
+      secret: "27f01f472b0a4b75c6c648ca15c57c46b8c2db63b03e63b55180c685b5bf6054"
       parameter:
         source: header
         name: X-Hub-Signature
