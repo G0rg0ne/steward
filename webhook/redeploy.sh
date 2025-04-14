@@ -1,5 +1,11 @@
 #!/bin/bash
 
+# Debug information
+echo "Script location: $(pwd)"
+echo "Script path: $0"
+echo "Script permissions: $(ls -la $0)"
+echo "Current user: $(whoami)"
+
 # Exit on error
 set -e
 
