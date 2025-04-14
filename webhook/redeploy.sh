@@ -3,6 +3,10 @@
 # Exit on error
 set -e
 
+# Set proper permissions
+chmod 755 /etc/webhook/redeploy.sh
+chmod 666 /etc/webhook/deployment.log
+
 # Log function
 log() {
     echo "$(date) - $1" >> /etc/webhook/deployment.log
