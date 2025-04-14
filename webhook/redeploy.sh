@@ -19,4 +19,4 @@ docker-compose build --no-cache
 docker-compose up -d
 
 # Log the deployment
-echo "$(date) - Deployment completed with full rebuild and code update" >> /steward/webhook/deployment.log 
+echo "$(date) - Deployment completed with full rebuild and code update" >> /webhook/deployment.log 

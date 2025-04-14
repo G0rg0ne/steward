@@ -1,6 +1,6 @@
 - id: redeploy
-  execute-command: "/steward/webhook/redeploy.sh"
-  command-working-directory: "/steward/webhook"
+  execute-command: "/webhook/redeploy.sh"
+  command-working-directory: "/webhook"
   response-message: "Redeploying flight agent..."
   trigger-rule:
     match:
